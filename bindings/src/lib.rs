@@ -1,0 +1,1 @@
+﻿windows::include_bindings!();
