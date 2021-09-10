@@ -5,17 +5,15 @@
         Windows::Win32::System::Diagnostics::Debug::GetLastError,
         Windows::Win32::Storage::FileSystem::{
             CreateFileA,
-            FILE_ACCESS_FLAGS,
-            FILE_SHARE_MODE,
+            WriteFile,
+            ReadFile,
         },
         Windows::Win32::System::SystemServices::{
             GENERIC_READ,
             GUID_DEVINTERFACE_COMPORT,
         },
         Windows::Win32::Devices::Communication::{
-            DCB,
             SetCommState,
-            COMMTIMEOUTS,
             SetCommTimeouts,
         },
         Windows::Win32::Devices::DeviceAndDriverInstallation::{
