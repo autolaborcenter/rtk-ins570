@@ -2,16 +2,18 @@
 
 pub struct Ins570 {
     frames: [FrameBuffer; 2],
-    which: u8,
+    which: usize,
+    state: SolutionState,
+    offset: WGS84,
 }
 
-impl Ins570 {
-    pub fn new() -> Self {
-        Ins570 {
-            frames: [Default::default(); 2],
-            which: 0u8,
-        }
-    }
+pub enum Solution {
+    Uninitialized,
+    Data {
+        state: SolutionState,
+        enu: Enu<f64>,
+        dir: f64,
+    },
 }
 
 #[derive(Copy, Clone)]
@@ -28,7 +30,7 @@ union Frame {
 
 #[derive(Copy, Clone)]
 #[repr(C, packed)]
-struct FrameValue {
+pub struct FrameValue {
     head: [u8; 3],
     attitude: Attitude,
     w: XYZ<i16>,
@@ -37,12 +39,18 @@ struct FrameValue {
     v: NEG<i16>,
     status: u8,
     zero: [u8; 6],
-    extra: [i16; 3],
+    extra: Extra,
     time_stamp: u32,
     extra_type: u8,
     xor_check0: u8,
     gps: u32,
     xor_check1: u8,
+}
+
+#[derive(Copy, Clone)]
+#[repr(C)]
+union Extra {
+    state: SolutionState,
 }
 
 #[derive(Copy, Clone)]
@@ -55,10 +63,10 @@ struct XYZ<T: Num> {
 
 #[derive(Copy, Clone)]
 #[repr(C)]
-struct Enu<T: Num> {
-    e: T,
-    n: T,
-    u: T,
+pub struct Enu<T: Num> {
+    pub e: T,
+    pub n: T,
+    pub u: T,
 }
 
 #[derive(Copy, Clone)]
@@ -85,11 +93,12 @@ struct Attitude {
     yaw: i16,
 }
 
+#[derive(Copy, Clone)]
 #[repr(C, packed)]
-struct SolutionState {
-    state_pos: i16,
-    satellites: i16,
-    state_dir: i16,
+pub struct SolutionState {
+    pub state_pos: i16,
+    pub satellites: i16,
+    pub state_dir: i16,
 }
 
 /// 帧长度
@@ -184,9 +193,22 @@ impl FrameBuffer {
 }
 
 impl Ins570 {
-    /// 从当前帧获取值
-    pub fn get_frame(&self) -> &FrameValue {
-        unsafe { &self.frames[self.which as usize].frame.value }
+    /// 构造
+    pub fn new() -> Self {
+        Ins570 {
+            frames: [Default::default(); 2],
+            which: 0,
+            state: SolutionState {
+                state_pos: 0,
+                state_dir: 0,
+                satellites: 0,
+            },
+            offset: WGS84 {
+                latitude: 39_9931403,
+                longiitude: 116_3281766,
+                altitude: 0,
+            },
+        }
     }
 
     /// 从缓冲帧获取空闲缓冲区
@@ -195,10 +217,19 @@ impl Ins570 {
     }
 
     /// 校验缓冲帧，成功时交换帧
-    pub fn notify_received(&mut self) {
-        if self.frames[1 - self.which as usize].frame.verify() {
+    pub fn notify_received(&mut self, n: usize) -> Option<Solution> {
+        if self.frames[1 - self.which as usize].verify(n) {
             self.frames[self.which as usize].tail = 0;
             self.which = 1 - self.which;
+
+            let frame = unsafe { &self.frames[self.which].frame.value };
+            if frame.extra_type == 32 {
+                self.state = unsafe { frame.extra.state };
+            }
+            todo!()
+            // Some(())
+        } else {
+            None
         }
     }
 }
