@@ -1,5 +1,6 @@
 use serial_port::SerialPort;
 
+mod ins570;
 mod serial_port;
 
 fn main() {

@@ -10,6 +10,7 @@
         },
         Windows::Win32::System::SystemServices::{
             GENERIC_READ,
+            GENERIC_WRITE,
             GUID_DEVINTERFACE_COMPORT,
         },
         Windows::Win32::Devices::Communication::{

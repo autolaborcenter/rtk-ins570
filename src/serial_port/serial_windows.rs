@@ -64,7 +64,7 @@ impl super::SerialPort for ComPort {
             let mut p: Param<'_, PSTR> = path.into_param();
             let handle = CreateFileA(
                 p.abi(),
-                FILE_ACCESS_FLAGS(GENERIC_READ),
+                FILE_ACCESS_FLAGS(GENERIC_READ | GENERIC_WRITE),
                 FILE_SHARE_MODE(0),
                 null::<SECURITY_ATTRIBUTES>() as *mut SECURITY_ATTRIBUTES,
                 OPEN_EXISTING,
