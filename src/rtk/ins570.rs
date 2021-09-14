@@ -1,4 +1,6 @@
-﻿use num_traits::Num;
+﻿use std::f64::consts::{FRAC_PI_2, PI};
+
+use num_traits::Num;
 
 pub struct Ins570 {
     frames: [FrameBuffer; 2],
@@ -8,6 +10,7 @@ pub struct Ins570 {
 }
 
 pub enum Solution {
+    Nothing,
     Uninitialized,
     Data {
         state: SolutionState,
@@ -81,7 +84,7 @@ struct NEG<T: Num> {
 #[repr(C, packed)]
 struct WGS84 {
     latitude: i32,
-    longiitude: i32,
+    longitude: i32,
     altitude: i32,
 }
 
@@ -205,7 +208,7 @@ impl Ins570 {
             },
             offset: WGS84 {
                 latitude: 39_9931403,
-                longiitude: 116_3281766,
+                longitude: 116_3281766,
                 altitude: 0,
             },
         }
@@ -217,19 +220,56 @@ impl Ins570 {
     }
 
     /// 校验缓冲帧，成功时交换帧
-    pub fn notify_received(&mut self, n: usize) -> Option<Solution> {
+    pub fn notify_received(&mut self, n: usize) -> Solution {
         if self.frames[1 - self.which as usize].verify(n) {
+            // 校验成功
+
+            // 切换缓冲
             self.frames[self.which as usize].tail = 0;
             self.which = 1 - self.which;
 
+            // 提取值
             let frame = unsafe { &self.frames[self.which].frame.value };
+            // 更新解状态
             if frame.extra_type == 32 {
                 self.state = unsafe { frame.extra.state };
             }
-            todo!()
-            // Some(())
+            // 判断初始化是否完成
+            if frame.status.count_ones() < 4 {
+                // 未初始化
+                Solution::Uninitialized
+            } else {
+                // 已初始化
+                Solution::Data {
+                    state: self.state,
+                    enu: frame.wgs84.transform(self.offset),
+                    dir: FRAC_PI_2 - frame.attitude.yaw as f64 * PI / 16384.0,
+                }
+            }
         } else {
-            None
+            // 包不完整或校验失败
+            Solution::Nothing
+        }
+    }
+}
+
+impl WGS84 {
+    fn transform(&self, offset: Self) -> Enu<f64> {
+        const K: f64 = PI / 180.0;
+        const A: f64 = 6378137.0;
+        const B: f64 = A * (1.0 - 1.0 / 298.257223563);
+
+        let theta = offset.latitude as f64 * K;
+        let cos = theta.cos();
+        let sin = theta.sin();
+        let r = (A * cos).hypot(B * sin) + offset.altitude as f64 * 1e-7;
+        let d_longitude = (self.longitude - offset.longitude) as f64 * K;
+        let d_latitude = (self.latitude - offset.latitude) as f64 * K;
+        let d_altitude = (self.altitude - offset.altitude) as f64 * 1e-7;
+        Enu {
+            e: r * cos * d_longitude.tan(),
+            n: r * d_latitude.tan(),
+            u: d_altitude,
         }
     }
 }
