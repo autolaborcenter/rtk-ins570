@@ -108,6 +108,7 @@ pub struct SolutionState {
 /// 帧长度
 const LEN: usize = std::mem::size_of::<Frame>();
 const LENu8: u8 = LEN as u8;
+const HEAD: [u8; 3] = [0xbd, 0xdb, 0x0b];
 
 impl Default for FrameBuffer {
     fn default() -> Self {
@@ -127,21 +128,24 @@ impl Frame {
 
         // 寻找帧头
         fn find_head(buf: &[u8]) -> usize {
-            let len = buf.len();
-            if len > 1 {
-                for i in 0..len - 2 {
-                    if buf[i..i + 3] == [0xbd, 0xdb, 0x0b] {
-                        return i;
+            let mut i = 0;
+            loop {
+                let sub = &buf[i..];
+                match sub.len() {
+                    0 => return i,
+                    1 | 2 => {
+                        if HEAD.starts_with(&sub) {
+                            return i;
+                        }
+                    }
+                    _ => {
+                        if sub.starts_with(&HEAD) {
+                            return i;
+                        }
                     }
                 }
-                if buf[len - 2..] == [0xbd, 0xdb] {
-                    return len - 2;
-                }
+                i += 1;
             }
-            if buf[len - 1] == 0xbd {
-                return len - 1;
-            }
-            return len;
         }
 
         // 移动内存
@@ -183,19 +187,17 @@ impl FrameBuffer {
     /// 校验并更新已填充的缓冲区
     fn verify(&mut self, n: usize) -> bool {
         let len = self.tail + n as u8;
-        if len < 3 {
-            return false;
-        }
-        let len = if self.tail < 3 {
+        // 如果上次没有确定完整的头需要重新找头
+        self.tail = if self.tail < 3 {
             self.frame.resync(0..len as usize)
         } else {
             len
         };
-        self.tail = if len != LENu8 || self.frame.verify() {
-            len
-        } else {
-            self.frame.resync(1..LEN)
+        // 长度完整但校验失败，跳过头重新找
+        if self.tail == LENu8 && !self.frame.verify() {
+            self.tail = self.frame.resync(3..LEN)
         };
+        // 最终如果长度还慢说明校验也成功
         self.tail == LENu8
     }
 }
