@@ -1,12 +1,13 @@
-﻿use std::f64::consts::{FRAC_PI_2, PI};
-
-use num_traits::Num;
+﻿use num_traits::Num;
+use std::f64::consts::{FRAC_PI_2, PI};
+use std::time::{Duration, Instant};
 
 pub struct Ins570 {
     frames: [FrameBuffer; 2],
     which: usize,
     state: SolutionState,
     offset: WGS84,
+    output_instant: std::time::Instant,
 }
 
 pub enum Solution {
@@ -112,7 +113,7 @@ impl Default for FrameBuffer {
     fn default() -> Self {
         Self {
             frame: Frame { bytes: [0; LEN] },
-            tail: LENu8,
+            tail: 0,
         }
     }
 }
@@ -123,20 +124,19 @@ impl Frame {
         if range.is_empty() {
             return 0;
         }
-        if range.start == 0 {
-            return range.len() as u8;
-        }
 
         // 寻找帧头
         fn find_head(buf: &[u8]) -> usize {
             let len = buf.len();
-            for i in 0..len - 2 {
-                if buf[i..i + 3] == [0xbd, 0xdb, 0x0b] {
-                    return i;
+            if len > 1 {
+                for i in 0..len - 2 {
+                    if buf[i..i + 3] == [0xbd, 0xdb, 0x0b] {
+                        return i;
+                    }
                 }
-            }
-            if buf[len - 2..] == [0xbd, 0xdb] {
-                return len - 2;
+                if buf[len - 2..] == [0xbd, 0xdb] {
+                    return len - 2;
+                }
             }
             if buf[len - 1] == 0xbd {
                 return len - 1;
@@ -144,6 +144,7 @@ impl Frame {
             return len;
         }
 
+        // 移动内存
         let src = unsafe { &self.bytes[range] };
         let i = find_head(src);
         if i == 0 {
@@ -182,14 +183,18 @@ impl FrameBuffer {
     /// 校验并更新已填充的缓冲区
     fn verify(&mut self, n: usize) -> bool {
         let len = self.tail + n as u8;
-        let len = match self.tail {
-            0 | 1 | 2 => self.frame.resync(0..len as usize),
-            _ => len,
+        if len < 3 {
+            return false;
+        }
+        let len = if self.tail < 3 {
+            self.frame.resync(0..len as usize)
+        } else {
+            len
         };
         self.tail = if len != LENu8 || self.frame.verify() {
             len
         } else {
-            self.frame.resync(std::cmp::min(self.tail as usize, 3)..LEN)
+            self.frame.resync(1..LEN)
         };
         self.tail == LENu8
     }
@@ -211,6 +216,7 @@ impl Ins570 {
                 longitude: 116_3281766,
                 altitude: 0,
             },
+            output_instant: Instant::now() - Duration::from_secs(1),
         }
     }
 
@@ -234,9 +240,17 @@ impl Ins570 {
             if frame.extra_type == 32 {
                 self.state = unsafe { frame.extra.state };
             }
+
+            let now = Instant::now();
+            if now.duration_since(self.output_instant) < Duration::from_millis(25) {
+                return Solution::Nothing;
+            }
+            self.output_instant = now;
+
             // 判断初始化是否完成
             if frame.status.count_ones() < 4 {
                 // 未初始化
+                println!("uninitialized");
                 Solution::Uninitialized
             } else {
                 // 已初始化
