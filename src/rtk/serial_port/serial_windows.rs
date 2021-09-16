@@ -59,7 +59,7 @@ impl super::SerialPort for ComPort {
         ports
     }
 
-    fn open(path: &str) -> Self {
+    fn open(path: &str) -> Result<Self, String> {
         let handle = unsafe {
             let mut p: Param<'_, PSTR> = path.into_param();
             let handle = CreateFileA(
@@ -72,7 +72,7 @@ impl super::SerialPort for ComPort {
                 HANDLE::NULL,
             );
             if handle.is_invalid() {
-                panic!("failed to open: {:?}", GetLastError());
+                return Err(format!("failed to open: {:?}", GetLastError()));
             }
             handle
         };
@@ -87,7 +87,7 @@ impl super::SerialPort for ComPort {
         };
         unsafe {
             if !SetCommState(port.0, &mut dcb).as_bool() {
-                panic!("failed to set dcb: {:?}", GetLastError());
+                return Err(format!("failed to set dcb: {:?}", GetLastError()));
             }
         }
 
@@ -97,11 +97,11 @@ impl super::SerialPort for ComPort {
         };
         unsafe {
             if !SetCommTimeouts(port.0, &mut commtimeouts).as_bool() {
-                panic!("failed to set timeout: {:?}", GetLastError());
+                return Err(format!("failed to set timeout: {:?}", GetLastError()));
             }
         }
 
-        port
+        Ok(port)
     }
 
     fn read(&self, buffer: &mut [u8]) -> Option<usize> {

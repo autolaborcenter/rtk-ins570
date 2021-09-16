@@ -1,6 +1,6 @@
-﻿pub trait SerialPort {
+﻿pub trait SerialPort: Sized {
     fn list() -> Vec<String>;
-    fn open(path: &str) -> Self;
+    fn open(path: &str) -> Result<Self, String>;
     fn read(&self, buffer: &mut [u8]) -> Option<usize>;
     fn write(&self, buffer: &[u8]) -> Option<usize>;
 }

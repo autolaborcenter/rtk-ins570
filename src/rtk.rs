@@ -18,7 +18,7 @@ impl RTK {
 }
 
 impl Iterator for RTK {
-    type Item = ins570::Solution;
+    type Item = ins570::SolutionData;
 
     fn next(&mut self) -> Option<Self::Item> {
         use std::time::{Duration, Instant};
@@ -35,8 +35,8 @@ impl Iterator for RTK {
                     ins570::Solution::Uninitialized => {
                         instant = Instant::now();
                     }
-                    ins570::Solution::Data { state, enu, dir } => {
-                        return Some(ins570::Solution::Data { state, enu, dir });
+                    ins570::Solution::Data(data) => {
+                        return Some(data);
                     }
                 },
                 None => return None,

@@ -13,11 +13,13 @@ pub struct Ins570 {
 pub enum Solution {
     Nothing,
     Uninitialized,
-    Data {
-        state: SolutionState,
-        enu: Enu<f64>,
-        dir: f64,
-    },
+    Data(SolutionData),
+}
+
+pub struct SolutionData {
+    pub state: SolutionState,
+    pub enu: Enu<f64>,
+    pub dir: f64,
 }
 
 #[derive(Copy, Clone)]
@@ -126,31 +128,17 @@ impl Frame {
             return 0;
         }
 
-        // 寻找帧头
-        fn find_head(buf: &[u8]) -> usize {
-            let mut i = 0;
-            loop {
-                let sub = &buf[i..];
-                match sub.len() {
-                    0 => return i,
-                    1 | 2 => {
-                        if HEAD.starts_with(&sub) {
-                            return i;
-                        }
-                    }
-                    _ => {
-                        if sub.starts_with(&HEAD) {
-                            return i;
-                        }
-                    }
-                }
-                i += 1;
-            }
-        }
-
         // 移动内存
         let src = unsafe { &self.bytes[range] };
-        let i = find_head(src);
+        let mut i = 0;
+        loop {
+            let sub = &src[i..];
+            if sub.is_empty() || (sub.len() < 3 && HEAD.starts_with(&sub)) || sub.starts_with(&HEAD)
+            {
+                break;
+            }
+            i += 1;
+        }
         if i == 0 {
             return src.len() as u8;
         }
@@ -197,7 +185,7 @@ impl FrameBuffer {
         if self.tail == LENu8 && !self.frame.verify() {
             self.tail = self.frame.resync(3..LEN)
         };
-        // 最终如果长度还慢说明校验也成功
+        // 最终如果长度还满说明校验也成功
         self.tail == LENu8
     }
 }
@@ -256,11 +244,11 @@ impl Ins570 {
                 Solution::Uninitialized
             } else {
                 // 已初始化
-                Solution::Data {
+                Solution::Data(SolutionData {
                     state: self.state,
                     enu: frame.wgs84.transform(self.offset),
                     dir: FRAC_PI_2 - frame.attitude.yaw as f64 * PI / 16384.0,
-                }
+                })
             }
         } else {
             // 包不完整或校验失败
