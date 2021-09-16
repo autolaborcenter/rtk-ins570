@@ -48,14 +48,20 @@ impl super::SerialPort for SerialFD {
             Ok(t) => t,
             Err(e) => return map_errno("tcgetattr", e),
         };
+        tty.input_flags.remove(termios::InputFlags::all());
+        tty.output_flags.remove(termios::OutputFlags::all());
+        tty.control_flags.remove(ControlFlags::all());
+        tty.local_flags.remove(termios::LocalFlags::all());
+
         if let Err(e) = termios::cfsetspeed(&mut tty, termios::BaudRate::B230400) {
             return map_errno("cfsetspeed", e);
         }
         tty.control_flags.insert(ControlFlags::CS8);
         tty.control_flags.insert(ControlFlags::CREAD);
         tty.control_flags.insert(ControlFlags::CLOCAL);
-        tty.control_chars[VTIME as usize] = 5;
+        tty.control_chars[VTIME as usize] = 1;
         tty.control_chars[VMIN as usize] = 0;
+
         if let Err(e) = termios::tcsetattr(fd.0, termios::SetArg::TCSAFLUSH, &tty) {
             return map_errno("tcsetattr", e);
         }

@@ -175,8 +175,6 @@ impl FrameBuffer {
 
     /// 校验并更新已填充的缓冲区
     fn verify(&mut self, n: usize) -> bool {
-        println!("received: {}", n);
-
         let len = self.tail + n as u8;
         // 如果上次没有确定完整的头需要重新找头
         self.tail = if self.tail < 3 {
