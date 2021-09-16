@@ -10,3 +10,4 @@ edition = "2021"
 bindings = { path = "bindings" }
 windows = "*"
 num-traits = "*"
+chrono = "*"

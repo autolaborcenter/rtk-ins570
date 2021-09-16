@@ -109,6 +109,7 @@ pub struct SolutionState {
 
 /// 帧长度
 const LEN: usize = std::mem::size_of::<Frame>();
+#[allow(non_upper_case_globals)]
 const LENu8: u8 = LEN as u8;
 const HEAD: [u8; 3] = [0xbd, 0xdb, 0x0b];
 
