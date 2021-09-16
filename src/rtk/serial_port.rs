@@ -13,3 +13,6 @@ pub type Port = serial_windows::ComPort;
 
 #[cfg(target_os = "linux")]
 mod serial_linux;
+
+#[cfg(target_os = "linux")]
+pub type Port = serial_linux::SerialFD;

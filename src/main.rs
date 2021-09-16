@@ -6,28 +6,48 @@ use std::io::Write;
 
 mod rtk;
 
-const PREFIX: &str = "Silicon Labs CP210x USB to UART Bridge (COM";
-const PREFIX_LEN: usize = PREFIX.len();
+#[cfg(target_os = "windows")]
+fn may_open(name: &String) -> Option<(String, serial_port::Port)> {
+    const PREFIX: &str = "Silicon Labs CP210x USB to UART Bridge (COM";
+    const PREFIX_LEN: usize = PREFIX.len();
+
+    if !name.starts_with(PREFIX) {
+        return None;
+    }
+
+    let num = &name.as_str()[PREFIX_LEN..name.len() - 1];
+    let path = format!("\\\\.\\COM{}", num);
+    match serial_port::Port::open(path.as_str()) {
+        Ok(port) => {
+            println!("reading from {}", path);
+            Some((format!("COM{}", num), port))
+        }
+        Err(e) => {
+            eprintln!("failed to open {}: {}", path, e);
+            None
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn may_open(name: &String) -> Option<(String, serial_port::Port)> {
+    match serial_port::Port::open(name.as_str()) {
+        Ok(port) => {
+            println!("reading from {}", name);
+            Some((name.clone(), port))
+        }
+        Err(e) => {
+            eprintln!("failed to open {}: {}", name, e);
+            None
+        }
+    }
+}
 
 fn main() {
     let datetime: DateTime<Local> = std::time::SystemTime::now().into();
     let threads = serial_port::Port::list()
         .iter()
-        .filter(|name| name.starts_with(PREFIX))
-        .filter_map(|name| {
-            let num = &name.as_str()[PREFIX_LEN..name.len() - 1];
-            let path = format!("\\\\.\\COM{}", num);
-            match serial_port::Port::open(path.as_str()) {
-                Ok(port) => {
-                    println!("reading from {}", path);
-                    Some((format!("COM{}", num), port))
-                }
-                Err(e) => {
-                    eprintln!("failed to open {}: {}", path, e);
-                    None
-                }
-            }
-        })
+        .filter_map(may_open)
         .map(|(name, port)| {
             let file_path = format!("log/{}", datetime.format("%Y-%m-%d"));
             let file_name = format!(

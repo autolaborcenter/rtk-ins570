@@ -9,5 +9,6 @@ edition = "2021"
 [dependencies]
 bindings = { path = "bindings" }
 windows = "*"
+nix = "*"
 num-traits = "*"
 chrono = "*"
