@@ -15,4 +15,4 @@ pub type Port = serial_windows::ComPort;
 mod serial_linux;
 
 #[cfg(target_os = "linux")]
-pub type Port = serial_linux::SerialFD;
+pub type Port = serial_linux::TTYPort;

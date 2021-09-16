@@ -8,15 +8,15 @@
 };
 use std::os::unix::prelude::RawFd;
 
-pub struct SerialFD(RawFd);
+pub struct TTYPort(RawFd);
 
-impl Drop for SerialFD {
+impl Drop for TTYPort {
     fn drop(&mut self) {
         let _ = nix::unistd::close(self.0);
     }
 }
 
-impl super::SerialPort for SerialFD {
+impl super::SerialPort for TTYPort {
     fn list() -> Vec<String> {
         match std::fs::read_dir("/dev/serial/by-path") {
             Ok(list) => list
@@ -36,7 +36,7 @@ impl super::SerialPort for SerialFD {
         }
 
         let fd = match nix::fcntl::open(path, OFlag::O_RDWR | OFlag::O_NOCTTY, Mode::empty()) {
-            Ok(fd) => SerialFD(fd),
+            Ok(fd) => TTYPort(fd),
             Err(e) => return map_errno("open", e),
         };
 
