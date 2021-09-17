@@ -118,13 +118,20 @@ dependencies = [
 ]
 
 [[package]]
-name = "rtk_1ns570_rs"
+name = "rtk-1ns570-rs"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "num-traits",
+ "serial-port",
+]
+
+[[package]]
+name = "serial-port"
 version = "0.1.0"
 dependencies = [
  "bindings",
- "chrono",
  "nix",
- "num-traits",
  "windows",
 ]
 

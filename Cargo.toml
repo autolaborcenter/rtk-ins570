@@ -1,14 +1,13 @@
 [package]
-name = "rtk_1ns570_rs"
+name = "rtk-1ns570-rs"
 version = "0.1.0"
 authors = ["YdrMaster <ydrml@hotmail.com>"]
 edition = "2021"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bindings = { path = "bindings" }
-windows = "*"
-nix = "*"
+serial-port = { path = "serial-port" }
 num-traits = "*"
 chrono = "*"

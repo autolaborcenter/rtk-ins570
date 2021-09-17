@@ -1,5 +1,4 @@
 ﻿pub mod ins570;
-mod serial_port;
 
 use serial_port::SerialPort;
 
@@ -107,7 +106,7 @@ fn may_open(name: &String) -> Option<(String, serial_port::Port)> {
         name.clone()
     };
 
-    match serial_port::Port::open(path.as_str()) {
+    match serial_port::Port::open(path.as_str(), 230400) {
         Ok(port) => {
             println!("reading from {}", path);
             Some((path, port))
