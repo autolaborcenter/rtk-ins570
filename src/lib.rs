@@ -47,6 +47,16 @@ impl Iterator for RTK {
 
 pub struct RTKThreads(Vec<std::thread::JoinHandle<()>>);
 
+#[macro_export]
+macro_rules! rtk_threads {
+    ($block:expr) => {
+        RTKThreads::open_all($block)
+    };
+    ($($x:expr)+; $block:expr ) => {
+        RTKThreads::open_some(&[$(String::from($x),)*], $block)
+    };
+}
+
 impl RTKThreads {
     /// 打开一些串口
     pub fn open_some<F>(paths: &[String], block: F) -> Self
@@ -73,14 +83,6 @@ impl RTKThreads {
         Self::open_some(serial_port::Port::list().as_slice(), block)
     }
 
-    /// 打开一个串口
-    pub fn open<F>(name: String, block: F) -> Self
-    where
-        F: 'static + Send + Clone + FnOnce(String, RTK),
-    {
-        Self::open_some(&[name], block)
-    }
-
     /// 阻塞
     pub fn join(self) {
         for thread in self.0 {
@@ -89,38 +91,29 @@ impl RTKThreads {
     }
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(unix, windows))]
 fn may_open(name: &String) -> Option<(String, serial_port::Port)> {
-    const PREFIX: &str = "Silicon Labs CP210x USB to UART Bridge (COM";
-    const PREFIX_LEN: usize = PREFIX.len();
+    let path = if cfg!(target_os = "windows") {
+        const PREFIX: &str = "Silicon Labs CP210x USB to UART Bridge (COM";
+        const PREFIX_LEN: usize = PREFIX.len();
 
-    if !name.starts_with(PREFIX) {
-        return None;
-    }
+        if !name.starts_with(PREFIX) {
+            return None;
+        }
 
-    let num = &name.as_str()[PREFIX_LEN..name.len() - 1];
-    let path = format!("\\\\.\\COM{}", num);
+        let num = &name.as_str()[PREFIX_LEN..name.len() - 1];
+        format!("\\\\.\\COM{}", num)
+    } else {
+        name.clone()
+    };
+
     match serial_port::Port::open(path.as_str()) {
         Ok(port) => {
             println!("reading from {}", path);
-            Some((format!("COM{}", num), port))
+            Some((path, port))
         }
         Err(e) => {
             eprintln!("failed to open {}: {}", path, e);
-            None
-        }
-    }
-}
-
-#[cfg(target_os = "linux")]
-fn may_open(name: &String) -> Option<(String, serial_port::Port)> {
-    match serial_port::Port::open(name.as_str()) {
-        Ok(port) => {
-            println!("reading from {}", name);
-            Some((name.clone(), port))
-        }
-        Err(e) => {
-            eprintln!("failed to open {}: {}", name, e);
             None
         }
     }

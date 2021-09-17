@@ -4,16 +4,9 @@ use std::f64::consts::PI;
 use std::io::Write;
 
 fn main() {
-    let datetime: DateTime<Local> = std::time::SystemTime::now().into();
-    let threads = RTKThreads::open_all(move |name, rtk| {
-        let file_path = format!("log/{}", datetime.format("%Y-%m-%d"));
-        let file_name = format!(
-            "{}/{}-{}.txt",
-            file_path.as_str(),
-            datetime.format("%H-%M-%S"),
-            name
-        );
-        let mut file: Option<std::fs::File> = None;
+    let time = std::time::SystemTime::now();
+    rtk_threads!(move |name, rtk| {
+        let mut file = LazyFile::new(time, name);
 
         for s in rtk {
             let ins570::SolutionData { state, enu, dir } = s;
@@ -33,20 +26,49 @@ fn main() {
                 satellites,
             );
 
-            if file.is_none() {
-                std::fs::create_dir_all(file_path.as_str()).unwrap();
-                file = Some(
-                    std::fs::OpenOptions::new()
-                        .append(true)
-                        .create(true)
-                        .open(format!("log/{}.path", file_name))
-                        .unwrap(),
-                );
-            }
-            write!(file.as_ref().unwrap(), "{}\n", text).unwrap();
             println!("{}", text.as_str());
+            file.appendln(text);
         }
-    });
+    })
+    .join();
+}
 
-    threads.join();
+struct LazyFile {
+    time: std::time::SystemTime,
+    name: String,
+    file: Option<std::fs::File>,
+}
+
+impl LazyFile {
+    fn new(time: std::time::SystemTime, name: String) -> Self {
+        LazyFile {
+            time,
+            name,
+            file: None,
+        }
+    }
+
+    fn appendln(&mut self, text: String) {
+        if self.file.is_none() {
+            let datetime: DateTime<Local> = self.time.into();
+            let path = format!("log/{}", datetime.format("%Y-%m-%d"));
+            let name = format!(
+                "{}/{}-{}.txt",
+                path.as_str(),
+                datetime.format("%H-%M-%S"),
+                self.name
+            );
+
+            std::fs::create_dir_all(path).unwrap();
+            self.file = Some(
+                std::fs::OpenOptions::new()
+                    .append(true)
+                    .create(true)
+                    .open(format!("log/{}.path", name))
+                    .unwrap(),
+            );
+        }
+
+        write!(self.file.as_ref().unwrap(), "{}\n", text).unwrap();
+    }
 }
