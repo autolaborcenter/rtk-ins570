@@ -83,7 +83,7 @@ struct NEG<T: Num> {
     g: T,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 struct WGS84 {
     latitude: i32,
@@ -248,7 +248,7 @@ impl Ins570 {
                 Solution::Data(SolutionData {
                     state: self.state,
                     enu: frame.wgs84.transform(self.offset),
-                    dir: FRAC_PI_2 - frame.attitude.yaw as f64 * PI / 16384.0,
+                    dir: -FRAC_PI_2 - frame.attitude.yaw as f64 * PI / 16384.0,
                 })
             }
         } else {
@@ -260,7 +260,7 @@ impl Ins570 {
 
 impl WGS84 {
     fn transform(&self, offset: Self) -> Enu<f64> {
-        const K: f64 = PI / 180.0;
+        const K: f64 = PI * 1e-7 / 180.0;
         const A: f64 = 6378137.0;
         const B: f64 = A * (1.0 - 1.0 / 298.257223563);
 

@@ -93,15 +93,14 @@ impl RTKThreads {
 #[cfg(any(unix, windows))]
 fn may_open(name: &String) -> Option<(String, serial_port::Port)> {
     let path = if cfg!(target_os = "windows") {
-        const PREFIX: &str = "Silicon Labs CP210x USB to UART Bridge (COM";
+        const PREFIX: &str = "Silicon Labs CP210x USB to UART Bridge (";
         const PREFIX_LEN: usize = PREFIX.len();
 
         if !name.starts_with(PREFIX) {
             return None;
         }
 
-        let num = &name.as_str()[PREFIX_LEN..name.len() - 1];
-        format!("\\\\.\\COM{}", num)
+        (&name.as_str()[PREFIX_LEN..name.len() - 1]).to_string()
     } else {
         name.clone()
     };

@@ -59,12 +59,13 @@ impl LazyFile {
                 self.name
             );
 
-            std::fs::create_dir_all(path).unwrap();
+            println!("path: {}, name: {}", &path, &name);
+            std::fs::create_dir_all(&path).unwrap();
             self.file = Some(
                 std::fs::OpenOptions::new()
                     .append(true)
                     .create(true)
-                    .open(format!("log/{}.path", name))
+                    .open(name)
                     .unwrap(),
             );
         }
