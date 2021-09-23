@@ -1,3 +1,0 @@
-[submodule "serial-port"]
-	path = serial-port
-	url = https://github.com/MechDancer/serial-port.git

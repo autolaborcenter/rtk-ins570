@@ -8,6 +8,6 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serial-port = { path = "serial-port" }
+serial-port = { path = "../serial-port" }
 num-traits = "*"
 chrono = "*"
