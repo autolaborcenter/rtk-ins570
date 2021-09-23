@@ -9,25 +9,37 @@ fn main() {
         let mut file = LazyFile::new(time, name);
 
         for s in rtk {
-            let ins570::SolutionData { state, enu, dir } = s;
-            let ins570::SolutionState {
-                state_pos,
-                satellites,
-                state_dir,
-            } = state;
-            let text = format!(
-                "{} {} {} {} {} {} {}",
-                enu.e,
-                enu.n,
-                enu.u,
-                dir * 180.0 / PI,
-                state_pos,
-                state_dir,
-                satellites,
-            );
+            match s {
+                ins570::Solution::Uninitialized(state) => {
+                    let ins570::SolutionState {
+                        state_pos,
+                        satellites,
+                        state_dir,
+                    } = state;
+                    println!("uninitialized: {} {} {}", state_pos, state_dir, satellites,)
+                }
+                ins570::Solution::Data(data) => {
+                    let ins570::SolutionData { state, enu, dir } = data;
+                    let ins570::SolutionState {
+                        state_pos,
+                        satellites,
+                        state_dir,
+                    } = state;
+                    let text = format!(
+                        "{} {} {} {} {} {} {}",
+                        enu.e,
+                        enu.n,
+                        enu.u,
+                        dir * 180.0 / PI,
+                        state_pos,
+                        state_dir,
+                        satellites,
+                    );
 
-            println!("{}", text.as_str());
-            file.appendln(text);
+                    println!("{}", text.as_str());
+                    file.appendln(text);
+                }
+            }
         }
     })
     .join();

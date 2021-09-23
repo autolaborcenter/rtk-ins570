@@ -11,8 +11,7 @@ pub struct Ins570 {
 }
 
 pub enum Solution {
-    Nothing,
-    Uninitialized,
+    Uninitialized(SolutionState),
     Data(SolutionData),
 }
 
@@ -217,7 +216,7 @@ impl Ins570 {
     }
 
     /// 校验缓冲帧，成功时交换帧
-    pub fn notify_received(&mut self, n: usize) -> Solution {
+    pub fn notify_received(&mut self, n: usize) -> Option<Solution> {
         if self.frames[1 - self.which as usize].verify(n) {
             // 校验成功
 
@@ -233,27 +232,26 @@ impl Ins570 {
             }
 
             let now = Instant::now();
-            if now.duration_since(self.output_instant) < Duration::from_millis(25) {
-                return Solution::Nothing;
+            if now.duration_since(self.output_instant) < Duration::from_millis(40) {
+                return None;
             }
             self.output_instant = now;
 
             // 判断初始化是否完成
             if frame.status.count_ones() < 4 {
                 // 未初始化
-                println!("uninitialized");
-                Solution::Uninitialized
+                Some(Solution::Uninitialized(self.state))
             } else {
                 // 已初始化
-                Solution::Data(SolutionData {
+                Some(Solution::Data(SolutionData {
                     state: self.state,
                     enu: frame.wgs84.transform(self.offset),
                     dir: -FRAC_PI_2 - frame.attitude.yaw as f64 * PI / 16384.0,
-                })
+                }))
             }
         } else {
             // 包不完整或校验失败
-            Solution::Nothing
+            None
         }
     }
 }

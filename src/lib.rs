@@ -17,25 +17,22 @@ impl RTK {
 }
 
 impl Iterator for RTK {
-    type Item = ins570::SolutionData;
+    type Item = ins570::Solution;
 
     fn next(&mut self) -> Option<Self::Item> {
         use std::time::{Duration, Instant};
-        let mut instant = Instant::now();
+        let begin = Instant::now();
         loop {
             let mut buffer = self.ins570.get_buf();
             match self.port.read(&mut buffer) {
                 Some(n) => match self.ins570.notify_received(n) {
-                    ins570::Solution::Nothing => {
-                        if Instant::now().duration_since(instant) > Duration::from_millis(500) {
+                    Some(solution) => {
+                        return Some(solution);
+                    }
+                    None => {
+                        if Instant::now().duration_since(begin) > Duration::from_millis(500) {
                             return None;
                         }
-                    }
-                    ins570::Solution::Uninitialized => {
-                        instant = Instant::now();
-                    }
-                    ins570::Solution::Data(data) => {
-                        return Some(data);
                     }
                 },
                 None => return None,
