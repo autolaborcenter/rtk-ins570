@@ -1,5 +1,5 @@
 ﻿use chrono::{DateTime, Local};
-use rtk_1ns570_rs::*;
+use rtk_ins570_rs::*;
 use std::f64::consts::PI;
 use std::io::Write;
 
