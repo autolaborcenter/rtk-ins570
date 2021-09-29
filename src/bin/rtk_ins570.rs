@@ -1,7 +1,6 @@
 ﻿use chrono::{DateTime, Local};
 use rtk_ins570_rs::*;
-use std::f64::consts::PI;
-use std::io::Write;
+use std::{f64::consts::PI, io::Write, path::PathBuf};
 
 fn main() {
     let time = std::time::SystemTime::now();
@@ -68,7 +67,11 @@ impl LazyFile {
                 "{}/{}-{}.txt",
                 path.as_str(),
                 datetime.format("%H-%M-%S"),
-                self.name
+                PathBuf::from(&self.name)
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
             );
 
             println!("path: {}, name: {}", &path, &name);
