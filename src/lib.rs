@@ -102,7 +102,7 @@ fn may_open(name: &String) -> Option<(String, serial_port::Port)> {
         name.clone()
     };
 
-    match serial_port::Port::open(path.as_str(), 230400) {
+    match serial_port::Port::open(path.as_str(), 230400, 1000) {
         Ok(port) => {
             println!("reading from {}", path);
             Some((path, port))
