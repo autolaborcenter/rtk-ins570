@@ -1,4 +1,5 @@
-﻿use num_traits::Num;
+﻿use driver::DriverStatus;
+use num_traits::Num;
 use std::f64::consts::{FRAC_PI_2, PI};
 use std::time::{Duration, Instant};
 
@@ -10,11 +11,13 @@ pub struct Ins570 {
     output_instant: std::time::Instant,
 }
 
+#[derive(Clone)]
 pub enum Solution {
     Uninitialized(SolutionState),
     Data(SolutionData),
 }
 
+#[derive(Clone)]
 pub struct SolutionData {
     pub state: SolutionState,
     pub enu: Enu<f64>,
@@ -118,6 +121,14 @@ impl Default for FrameBuffer {
             frame: Frame { bytes: [0; LEN] },
             tail: 0,
         }
+    }
+}
+
+impl DriverStatus for Solution {
+    type Event = Self;
+
+    fn update(&mut self, event: Self::Event) {
+        *self = event;
     }
 }
 

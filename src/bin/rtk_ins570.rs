@@ -1,25 +1,26 @@
 ﻿use chrono::{DateTime, Local};
-use rtk_ins570_rs::*;
+use driver::Module;
+use rtk_ins570_rs::{ins570::*, RTKThreads};
 use std::{f64::consts::PI, io::Write, path::PathBuf};
 
 fn main() {
     let time = std::time::SystemTime::now();
-    rtk_threads!(move |name, rtk| {
-        let mut file = LazyFile::new(time, name);
+    let mut file = LazyFile::new(time, "rtk".into());
 
-        for s in rtk {
+    if let Some(rtk) = RTKThreads::open_all(1).into_iter().next() {
+        for (_, s) in rtk {
             match s {
-                ins570::Solution::Uninitialized(state) => {
-                    let ins570::SolutionState {
+                Solution::Uninitialized(state) => {
+                    let SolutionState {
                         state_pos,
                         satellites,
                         state_dir,
                     } = state;
                     println!("uninitialized: {} {} {}", state_pos, state_dir, satellites,)
                 }
-                ins570::Solution::Data(data) => {
-                    let ins570::SolutionData { state, enu, dir } = data;
-                    let ins570::SolutionState {
+                Solution::Data(data) => {
+                    let SolutionData { state, enu, dir } = data;
+                    let SolutionState {
                         state_pos,
                         satellites,
                         state_dir,
@@ -40,8 +41,7 @@ fn main() {
                 }
             }
         }
-    })
-    .join();
+    }
 }
 
 struct LazyFile {
