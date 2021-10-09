@@ -8,14 +8,15 @@ fn main() {
     let mut file = LazyFile::new(time, "rtk".into());
 
     if let Some(mut rtk) = RTKThreads::open_all(1).into_iter().next() {
-        rtk.wait(|_, _, s| match s {
+        rtk.join(|_, s| match s.unwrap().1 {
             Solution::Uninitialized(state) => {
                 let SolutionState {
                     state_pos,
                     satellites,
                     state_dir,
                 } = state;
-                println!("uninitialized: {} {} {}", state_pos, state_dir, satellites,)
+                println!("uninitialized: {} {} {}", state_pos, state_dir, satellites,);
+                true
             }
             Solution::Data(data) => {
                 let SolutionData { state, enu, dir } = data;
@@ -37,6 +38,7 @@ fn main() {
 
                 println!("{}", text.as_str());
                 file.appendln(text);
+                true
             }
         });
     }

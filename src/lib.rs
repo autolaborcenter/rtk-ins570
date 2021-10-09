@@ -35,11 +35,14 @@ impl Driver<Port> for RTK {
         self.last.clone()
     }
 
-    fn send(&mut self, _: Self::Command) {}
+    fn send(&mut self, _: (Instant, Self::Command)) {}
 
-    fn wait<F>(&mut self, f: F) -> bool
+    fn join<F>(&mut self, mut f: F) -> bool
     where
-        F: FnOnce(&mut Self, Instant, <Self::Status as driver::DriverStatus>::Event),
+        F: FnMut(
+            &mut Self,
+            Option<(Instant, <Self::Status as driver::DriverStatus>::Event)>,
+        ) -> bool,
     {
         let begin = Instant::now();
         loop {
@@ -47,7 +50,7 @@ impl Driver<Port> for RTK {
             match self.port.read(&mut buffer) {
                 Some(n) => match self.ins570.notify_received(n) {
                     Some(solution) => {
-                        f(self, Instant::now(), solution);
+                        f(self, Some((Instant::now(), solution)));
                         return true;
                     }
                     None => {
