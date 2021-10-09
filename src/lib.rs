@@ -1,7 +1,4 @@
-﻿use driver::{
-    default::{DefaultHandle, DefaultPacemaker},
-    Driver, Module,
-};
+﻿use driver::{default::DefaultPacemaker, Driver, Module};
 use ins570::{Solution, SolutionState};
 use serial_port::{Port, SerialPort};
 use std::time::{Duration, Instant};
@@ -14,9 +11,10 @@ pub struct RTK {
     last: Solution,
 }
 
-impl Driver<Port, ins570::Solution> for RTK {
+impl Driver<Port> for RTK {
     type Pacemaker = DefaultPacemaker;
-    type Handle = DefaultHandle;
+    type Status = Solution;
+    type Command = ();
 
     fn new(port: serial_port::Port) -> (Self::Pacemaker, Self) {
         (
@@ -37,30 +35,28 @@ impl Driver<Port, ins570::Solution> for RTK {
         self.last.clone()
     }
 
-    fn handle(&self) -> Self::Handle {
-        Self::Handle {}
-    }
-}
+    fn send(&mut self, _: Self::Command) {}
 
-impl Iterator for RTK {
-    type Item = (Instant, ins570::Solution);
-
-    fn next(&mut self) -> Option<Self::Item> {
+    fn wait<F>(&mut self, f: F) -> bool
+    where
+        F: FnOnce(&mut Self, Instant, <Self::Status as driver::DriverStatus>::Event),
+    {
         let begin = Instant::now();
         loop {
             let mut buffer = self.ins570.get_buf();
             match self.port.read(&mut buffer) {
                 Some(n) => match self.ins570.notify_received(n) {
                     Some(solution) => {
-                        return Some((Instant::now(), solution));
+                        f(self, Instant::now(), solution);
+                        return true;
                     }
                     None => {
-                        if Instant::now().duration_since(begin) > Duration::from_millis(500) {
-                            return None;
+                        if Instant::now() > begin + Duration::from_millis(500) {
+                            return false;
                         }
                     }
                 },
-                None => return None,
+                None => return false,
             }
         }
     }
@@ -68,7 +64,7 @@ impl Iterator for RTK {
 
 pub struct RTKThreads;
 
-impl Module<Port, Solution, RTK> for RTKThreads {
+impl Module<Port, RTK> for RTKThreads {
     fn keys() -> Vec<Port> {
         Port::list()
             .into_iter()

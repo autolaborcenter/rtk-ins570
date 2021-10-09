@@ -1,5 +1,5 @@
 ﻿use chrono::{DateTime, Local};
-use driver::Module;
+use driver::{Driver, Module};
 use rtk_ins570_rs::{ins570::*, RTKThreads};
 use std::{f64::consts::PI, io::Write, path::PathBuf};
 
@@ -7,40 +7,38 @@ fn main() {
     let time = std::time::SystemTime::now();
     let mut file = LazyFile::new(time, "rtk".into());
 
-    if let Some(rtk) = RTKThreads::open_all(1).into_iter().next() {
-        for (_, s) in rtk {
-            match s {
-                Solution::Uninitialized(state) => {
-                    let SolutionState {
-                        state_pos,
-                        satellites,
-                        state_dir,
-                    } = state;
-                    println!("uninitialized: {} {} {}", state_pos, state_dir, satellites,)
-                }
-                Solution::Data(data) => {
-                    let SolutionData { state, enu, dir } = data;
-                    let SolutionState {
-                        state_pos,
-                        satellites,
-                        state_dir,
-                    } = state;
-                    let text = format!(
-                        "{} {} {} {} {} {} {}",
-                        enu.e,
-                        enu.n,
-                        enu.u,
-                        dir * 180.0 / PI,
-                        state_pos,
-                        state_dir,
-                        satellites,
-                    );
-
-                    println!("{}", text.as_str());
-                    file.appendln(text);
-                }
+    if let Some(mut rtk) = RTKThreads::open_all(1).into_iter().next() {
+        rtk.wait(|_, _, s| match s {
+            Solution::Uninitialized(state) => {
+                let SolutionState {
+                    state_pos,
+                    satellites,
+                    state_dir,
+                } = state;
+                println!("uninitialized: {} {} {}", state_pos, state_dir, satellites,)
             }
-        }
+            Solution::Data(data) => {
+                let SolutionData { state, enu, dir } = data;
+                let SolutionState {
+                    state_pos,
+                    satellites,
+                    state_dir,
+                } = state;
+                let text = format!(
+                    "{} {} {} {} {} {} {}",
+                    enu.e,
+                    enu.n,
+                    enu.u,
+                    dir * 180.0 / PI,
+                    state_pos,
+                    state_dir,
+                    satellites,
+                );
+
+                println!("{}", text.as_str());
+                file.appendln(text);
+            }
+        });
     }
 }
 
