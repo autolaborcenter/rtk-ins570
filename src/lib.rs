@@ -1,4 +1,4 @@
-﻿use driver::{default::DefaultPacemaker, Driver, Module};
+﻿use driver::{Driver, SupervisorForSingle};
 use ins570::{Solution, SolutionState};
 use serial_port::{Port, SerialPort};
 use std::time::{Duration, Instant};
@@ -11,24 +11,27 @@ pub struct RTK {
     last: Solution,
 }
 
-impl Driver<Port> for RTK {
-    type Pacemaker = DefaultPacemaker;
+impl Driver<String> for RTK {
+    type Pacemaker = ();
     type Status = Solution;
     type Command = ();
 
-    fn new(port: serial_port::Port) -> (Self::Pacemaker, Self) {
-        (
-            Self::Pacemaker {},
-            RTK {
-                ins570: ins570::Ins570::new(),
-                port,
-                last: Solution::Uninitialized(SolutionState {
-                    state_pos: 0,
-                    state_dir: 0,
-                    satellites: 0,
-                }),
-            },
-        )
+    fn new(name: String) -> Option<(Self::Pacemaker, Self)> {
+        match serial_port::Port::open(name.as_str(), 230400, 1000) {
+            Ok(port) => Some((
+                (),
+                RTK {
+                    ins570: ins570::Ins570::new(),
+                    port,
+                    last: Solution::Uninitialized(SolutionState {
+                        state_pos: 0,
+                        state_dir: 0,
+                        satellites: 0,
+                    }),
+                },
+            )),
+            Err(_) => None,
+        }
     }
 
     fn status(&self) -> ins570::Solution {
@@ -65,27 +68,35 @@ impl Driver<Port> for RTK {
     }
 }
 
-pub struct RTKThreads;
+pub struct RTKSupersivor(Box<Option<RTK>>);
 
-impl Module<Port, RTK> for RTKThreads {
-    fn keys() -> Vec<Port> {
+impl RTKSupersivor {
+    pub fn new() -> Self {
+        Self(Box::new(None))
+    }
+}
+
+impl SupervisorForSingle<String, RTK> for RTKSupersivor {
+    fn context<'a>(&'a mut self) -> &'a mut Box<Option<RTK>> {
+        &mut self.0
+    }
+
+    fn keys() -> Vec<String> {
         Port::list()
             .into_iter()
             .filter_map(|name| {
-                let path = if cfg!(target_os = "windows") {
+                if cfg!(target_os = "windows") {
                     const PREFIX: &str = "Silicon Labs CP210x USB to UART Bridge (";
                     const PREFIX_LEN: usize = PREFIX.len();
 
-                    if !name.starts_with(PREFIX) {
-                        return None;
+                    if name.starts_with(PREFIX) {
+                        Some((&name.as_str()[PREFIX_LEN..name.len() - 1]).into())
+                    } else {
+                        None
                     }
-
-                    (&name.as_str()[PREFIX_LEN..name.len() - 1]).to_string()
                 } else {
-                    name.clone()
-                };
-
-                serial_port::Port::open(path.as_str(), 230400, 1000).ok()
+                    Some(name)
+                }
             })
             .collect()
     }

@@ -1,47 +1,61 @@
 ﻿use chrono::{DateTime, Local};
-use driver::{Driver, Module};
-use rtk_ins570_rs::{ins570::*, RTKThreads};
-use std::{f64::consts::PI, io::Write, path::PathBuf};
+use driver::{SupersivorEventForSingle::*, SupervisorForSingle};
+use rtk_ins570_rs::{
+    ins570::{Solution, SolutionData, SolutionState},
+    RTKSupersivor,
+};
+use std::{f64::consts::PI, io::Write, path::PathBuf, thread, time::Duration};
 
 fn main() {
     let time = std::time::SystemTime::now();
     let mut file = LazyFile::new(time, "rtk".into());
 
-    if let Some(mut rtk) = RTKThreads::open_all(1).into_iter().next() {
-        rtk.join(|_, s| match s.unwrap().1 {
-            Solution::Uninitialized(state) => {
-                let SolutionState {
-                    state_pos,
-                    satellites,
-                    state_dir,
-                } = state;
-                println!("uninitialized: {} {} {}", state_pos, state_dir, satellites,);
-                true
+    RTKSupersivor::new().join(|e| {
+        match e {
+            Connected(_) => println!("Connected."),
+            ConnectFailed => {
+                println!("Failed.");
+                thread::sleep(Duration::from_secs(1));
             }
-            Solution::Data(data) => {
-                let SolutionData { state, enu, dir } = data;
-                let SolutionState {
-                    state_pos,
-                    satellites,
-                    state_dir,
-                } = state;
-                let text = format!(
-                    "{} {} {} {} {} {} {}",
-                    enu.e,
-                    enu.n,
-                    enu.u,
-                    dir * 180.0 / PI,
-                    state_pos,
-                    state_dir,
-                    satellites,
-                );
+            Disconnected => {
+                println!("Disconnected.");
+                thread::sleep(Duration::from_secs(1));
+            }
+            Event(_, Some((_, event))) => match event {
+                Solution::Uninitialized(state) => {
+                    let SolutionState {
+                        state_pos,
+                        satellites,
+                        state_dir,
+                    } = state;
+                    println!("uninitialized: {} {} {}", state_pos, state_dir, satellites,);
+                }
+                Solution::Data(data) => {
+                    let SolutionData { state, enu, dir } = data;
+                    let SolutionState {
+                        state_pos,
+                        satellites,
+                        state_dir,
+                    } = state;
+                    let text = format!(
+                        "{} {} {} {} {} {} {}",
+                        enu.e,
+                        enu.n,
+                        enu.u,
+                        dir * 180.0 / PI,
+                        state_pos,
+                        state_dir,
+                        satellites,
+                    );
 
-                println!("{}", text.as_str());
-                file.appendln(text);
-                true
-            }
-        });
-    }
+                    println!("{}", text.as_str());
+                    file.appendln(text);
+                }
+            },
+            Event(_, None) => {}
+        };
+        true
+    });
 }
 
 struct LazyFile {
