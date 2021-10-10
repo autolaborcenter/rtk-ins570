@@ -1,6 +1,6 @@
 ﻿use chrono::{DateTime, Local};
 use driver::{SupersivorEventForSingle::*, SupervisorForSingle};
-use rtk_ins570_rs::{
+use rtk_ins570::{
     ins570::{Solution, SolutionData, SolutionState},
     RTKSupersivor,
 };

@@ -34,8 +34,8 @@ impl Driver<String> for RTK {
         }
     }
 
-    fn status(&self) -> ins570::Solution {
-        self.last.clone()
+    fn status<'a>(&'a self) -> &'a ins570::Solution {
+        &self.last
     }
 
     fn send(&mut self, _: (Instant, Self::Command)) {}

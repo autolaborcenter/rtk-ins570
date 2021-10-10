@@ -122,7 +122,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rtk-ins570-rs"
+name = "rtk-ins570"
 version = "0.1.0"
 dependencies = [
  "chrono",
