@@ -16,7 +16,7 @@ impl Driver<String> for RTK {
     type Status = Solution;
     type Command = ();
 
-    fn new(name: String) -> Option<(Self::Pacemaker, Self)> {
+    fn new(name: &String) -> Option<(Self::Pacemaker, Self)> {
         match serial_port::Port::open(name.as_str(), 230400, 1000) {
             Ok(port) => Some((
                 (),
@@ -79,6 +79,11 @@ impl RTKSupersivor {
 impl SupervisorForSingle<String, RTK> for RTKSupersivor {
     fn context<'a>(&'a mut self) -> &'a mut Box<Option<RTK>> {
         &mut self.0
+    }
+
+    fn open_timeout() -> Duration {
+        const TIMEOUT: Duration = Duration::from_secs(5);
+        TIMEOUT
     }
 
     fn keys() -> Vec<String> {
