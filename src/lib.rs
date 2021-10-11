@@ -1,4 +1,4 @@
-﻿use driver::{Driver, SupervisorForSingle};
+﻿use driver::Driver;
 use ins570::{Solution, SolutionState};
 use serial_port::{Port, SerialPort};
 use std::time::{Duration, Instant};
@@ -15,6 +15,31 @@ impl Driver<String> for RTK {
     type Pacemaker = ();
     type Status = Solution;
     type Command = ();
+
+    fn keys() -> Vec<String> {
+        Port::list()
+            .into_iter()
+            .filter_map(|name| {
+                if cfg!(target_os = "windows") {
+                    const PREFIX: &str = "Silicon Labs CP210x USB to UART Bridge (";
+                    const PREFIX_LEN: usize = PREFIX.len();
+
+                    if name.starts_with(PREFIX) {
+                        Some((&name.as_str()[PREFIX_LEN..name.len() - 1]).into())
+                    } else {
+                        None
+                    }
+                } else {
+                    Some(name)
+                }
+            })
+            .collect()
+    }
+
+    fn open_timeout() -> Duration {
+        const TIMEOUT: Duration = Duration::from_secs(5);
+        TIMEOUT
+    }
 
     fn new(name: &String) -> Option<(Self::Pacemaker, Self)> {
         match serial_port::Port::open(name.as_str(), 230400, 1000) {
@@ -65,44 +90,5 @@ impl Driver<String> for RTK {
                 None => return false,
             }
         }
-    }
-}
-
-pub struct RTKSupersivor(Box<Option<RTK>>);
-
-impl RTKSupersivor {
-    pub fn new() -> Self {
-        Self(Box::new(None))
-    }
-}
-
-impl SupervisorForSingle<String, RTK> for RTKSupersivor {
-    fn context<'a>(&'a mut self) -> &'a mut Box<Option<RTK>> {
-        &mut self.0
-    }
-
-    fn open_timeout() -> Duration {
-        const TIMEOUT: Duration = Duration::from_secs(5);
-        TIMEOUT
-    }
-
-    fn keys() -> Vec<String> {
-        Port::list()
-            .into_iter()
-            .filter_map(|name| {
-                if cfg!(target_os = "windows") {
-                    const PREFIX: &str = "Silicon Labs CP210x USB to UART Bridge (";
-                    const PREFIX_LEN: usize = PREFIX.len();
-
-                    if name.starts_with(PREFIX) {
-                        Some((&name.as_str()[PREFIX_LEN..name.len() - 1]).into())
-                    } else {
-                        None
-                    }
-                } else {
-                    Some(name)
-                }
-            })
-            .collect()
     }
 }

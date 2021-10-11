@@ -2,7 +2,7 @@
 use driver::{SupersivorEventForSingle::*, SupervisorForSingle};
 use rtk_ins570::{
     ins570::{Solution, SolutionData, SolutionState},
-    RTKSupersivor,
+    RTK,
 };
 use std::{f64::consts::PI, io::Write, path::PathBuf, thread, time::Duration};
 
@@ -10,7 +10,7 @@ fn main() {
     let time = std::time::SystemTime::now();
     let mut file = LazyFile::new(time, "rtk".into());
 
-    RTKSupersivor::new().join(|e| {
+    SupervisorForSingle::<String, RTK>::new().join(|e| {
         match e {
             Connected(_, _) => println!("Connected."),
             ConnectFailed => {
