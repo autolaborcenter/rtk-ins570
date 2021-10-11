@@ -1,5 +1,4 @@
-﻿use driver::DriverStatus;
-use num_traits::Num;
+﻿use num_traits::Num;
 use std::f64::consts::{FRAC_PI_2, PI};
 use std::time::{Duration, Instant};
 
@@ -121,14 +120,6 @@ impl Default for FrameBuffer {
             frame: Frame { bytes: [0; LEN] },
             tail: 0,
         }
-    }
-}
-
-impl DriverStatus for Solution {
-    type Event = Self;
-
-    fn update(&mut self, event: Self::Event) {
-        *self = event;
     }
 }
 

@@ -10,7 +10,7 @@ fn main() {
     let time = std::time::SystemTime::now();
     let mut file = LazyFile::new(time, "rtk".into());
 
-    SupervisorForSingle::<String, RTK>::new().join(|e| {
+    SupervisorForSingle::<RTK>::new().join(|e| {
         match e {
             Connected(_, _) => println!("Connected."),
             ConnectFailed => {

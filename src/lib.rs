@@ -1,5 +1,5 @@
 ﻿use driver::Driver;
-use ins570::{Solution, SolutionState};
+use ins570::Solution;
 use serial_port::{Port, SerialPort};
 use std::time::{Duration, Instant};
 
@@ -8,12 +8,12 @@ pub mod ins570;
 pub struct RTK {
     ins570: ins570::Ins570,
     port: Port,
-    last: Solution,
 }
 
-impl Driver<String> for RTK {
+impl Driver for RTK {
+    type Key = String;
     type Pacemaker = ();
-    type Status = Solution;
+    type Event = Solution;
     type Command = ();
 
     fn keys() -> Vec<String> {
@@ -48,29 +48,17 @@ impl Driver<String> for RTK {
                 RTK {
                     ins570: ins570::Ins570::new(),
                     port,
-                    last: Solution::Uninitialized(SolutionState {
-                        state_pos: 0,
-                        state_dir: 0,
-                        satellites: 0,
-                    }),
                 },
             )),
             Err(_) => None,
         }
     }
 
-    fn status<'a>(&'a self) -> &'a ins570::Solution {
-        &self.last
-    }
-
     fn send(&mut self, _: (Instant, Self::Command)) {}
 
     fn join<F>(&mut self, mut f: F) -> bool
     where
-        F: FnMut(
-            &mut Self,
-            Option<(Instant, <Self::Status as driver::DriverStatus>::Event)>,
-        ) -> bool,
+        F: FnMut(&mut Self, Option<(Instant, Self::Event)>) -> bool,
     {
         let begin = Instant::now();
         loop {
