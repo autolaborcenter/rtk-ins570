@@ -51,7 +51,7 @@ impl Driver for RTK {
         }
     }
 
-    fn send(&mut self, _: (Instant, Self::Command)) {}
+    fn send(&mut self, _: Self::Command) {}
 
     fn join<F>(&mut self, mut f: F) -> bool
     where
