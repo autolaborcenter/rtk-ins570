@@ -1,9 +1,12 @@
 ﻿use driver::Driver;
-use ins570::Solution;
 use serial_port::{Port, PortKey, SerialPort};
 use std::time::{Duration, Instant};
 
-pub mod ins570;
+mod ins570;
+
+pub use ins570::{Enu, Solution, SolutionState, WGS84};
+
+pub extern crate driver;
 
 pub struct RTK {
     ins570: ins570::Ins570,
@@ -34,7 +37,7 @@ impl Driver for RTK {
     }
 
     fn open_timeout() -> Duration {
-        const TIMEOUT: Duration = Duration::from_secs(5);
+        const TIMEOUT: Duration = Duration::from_secs(1);
         TIMEOUT
     }
 
@@ -43,7 +46,7 @@ impl Driver for RTK {
             Ok(port) => Some((
                 (),
                 RTK {
-                    ins570: ins570::Ins570::new(),
+                    ins570: Default::default(),
                     port,
                 },
             )),

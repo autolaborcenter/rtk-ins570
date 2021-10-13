@@ -13,14 +13,11 @@ pub struct Ins570 {
 #[derive(Clone)]
 pub enum Solution {
     Uninitialized(SolutionState),
-    Data(SolutionData),
-}
-
-#[derive(Clone)]
-pub struct SolutionData {
-    pub state: SolutionState,
-    pub enu: Enu<f64>,
-    pub dir: f64,
+    Data {
+        state: SolutionState,
+        enu: Enu<f64>,
+        dir: f64,
+    },
 }
 
 #[derive(Copy, Clone)]
@@ -68,7 +65,7 @@ struct XYZ<T: Num> {
     z: T,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct Enu<T: Num> {
     pub e: T,
@@ -192,10 +189,9 @@ impl FrameBuffer {
     }
 }
 
-impl Ins570 {
-    /// 构造
-    pub fn new() -> Self {
-        Ins570 {
+impl Default for Ins570 {
+    fn default() -> Self {
+        Self {
             frames: [Default::default(); 2],
             which: 0,
             state: SolutionState {
@@ -211,7 +207,9 @@ impl Ins570 {
             output_instant: Instant::now() - Duration::from_secs(1),
         }
     }
+}
 
+impl Ins570 {
     /// 从缓冲帧获取空闲缓冲区
     pub fn get_buf(&mut self) -> &mut [u8] {
         (&mut self.frames[1 - self.which as usize]).get_buf()
@@ -245,11 +243,11 @@ impl Ins570 {
                 Some(Solution::Uninitialized(self.state))
             } else {
                 // 已初始化
-                Some(Solution::Data(SolutionData {
+                Some(Solution::Data {
                     state: self.state,
                     enu: frame.wgs84.transform(self.offset),
                     dir: -FRAC_PI_2 - frame.attitude.yaw as f64 * PI / 16384.0,
-                }))
+                })
             }
         } else {
             // 包不完整或校验失败
@@ -308,4 +306,23 @@ impl WGS84 {
 #[test]
 fn verify_size() {
     assert_eq!(LEN, 63);
+}
+
+#[test]
+fn test_system() {
+    const OFFSET: WGS84 = WGS84 {
+        latitude: 39_9931403,
+        longitude: 116_3281766,
+        altitude: 0,
+    };
+
+    let wgs = WGS84 {
+        latitude: 39_0000000,
+        longitude: 116_0000000,
+        altitude: 5,
+    };
+
+    let enu = wgs.transform(OFFSET);
+    println!("{:?}", enu);
+    println!("{:?}", WGS84::from_enu(enu, OFFSET));
 }
