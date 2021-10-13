@@ -86,7 +86,7 @@ struct NEG<T: Num> {
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
-struct WGS84 {
+pub struct WGS84 {
     latitude: i32,
     longitude: i32,
     altitude: i32,
@@ -259,17 +259,43 @@ impl Ins570 {
 }
 
 impl WGS84 {
-    fn transform(&self, offset: Self) -> Enu<f64> {
-        const K: f64 = PI * 1e-7 / 180.0;
-        const A: f64 = 6378137.0;
-        const B: f64 = A * (1.0 - 1.0 / 298.257223563);
+    const K: f64 = PI * 1e-7 / 180.0;
+    const A: f64 = 6378137.0;
+    const B: f64 = Self::A * (1.0 - 1.0 / 298.257223563);
 
-        let theta = offset.latitude as f64 * K;
+    pub fn from_enu(enu: Enu<f64>, offset: Self) -> Self {
+        let theta = offset.latitude as f64 * Self::K;
         let cos = theta.cos();
         let sin = theta.sin();
-        let r = (A * cos).hypot(B * sin) + offset.altitude as f64 * 1e-7;
-        let d_longitude = (self.longitude - offset.longitude) as f64 * K;
-        let d_latitude = (self.latitude - offset.latitude) as f64 * K;
+        let r = (Self::A * cos).hypot(Self::B * sin) + offset.altitude as f64 * 1e-7;
+
+        let Enu {
+            e,
+            n,
+            u: d_altitude,
+        } = enu;
+        let d_latitude = (n / r).atan();
+        let d_longitude = (e / r / cos).atan();
+
+        let longitude = (d_longitude / Self::K) as i32 + offset.longitude;
+        let latitude = (d_latitude / Self::K) as i32 + offset.latitude;
+        let altitude = (d_altitude * 1e7) as i32 + offset.altitude;
+
+        Self {
+            latitude,
+            longitude,
+            altitude,
+        }
+    }
+
+    pub fn transform(&self, offset: Self) -> Enu<f64> {
+        let theta = offset.latitude as f64 * Self::K;
+        let cos = theta.cos();
+        let sin = theta.sin();
+        let r = (Self::A * cos).hypot(Self::B * sin) + offset.altitude as f64 * 1e-7;
+
+        let d_longitude = (self.longitude - offset.longitude) as f64 * Self::K;
+        let d_latitude = (self.latitude - offset.latitude) as f64 * Self::K;
         let d_altitude = (self.altitude - offset.altitude) as f64 * 1e-7;
         Enu {
             e: r * cos * d_longitude.tan(),
