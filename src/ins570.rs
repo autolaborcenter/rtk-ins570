@@ -84,9 +84,9 @@ struct NEG<T: Num> {
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 pub struct WGS84 {
-    latitude: i32,
-    longitude: i32,
-    altitude: i32,
+    pub latitude: i32,
+    pub longitude: i32,
+    pub altitude: i32,
 }
 
 #[derive(Copy, Clone)]
