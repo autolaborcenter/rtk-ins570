@@ -82,7 +82,7 @@ struct NEG<T: Num> {
 }
 
 #[derive(Copy, Clone, Debug)]
-#[repr(C, packed)]
+#[repr(C)]
 pub struct WGS84 {
     pub latitude: i32,
     pub longitude: i32,
@@ -90,7 +90,7 @@ pub struct WGS84 {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C, packed)]
+#[repr(C)]
 struct Attitude {
     roll: i16,
     pitch: i16,
@@ -98,7 +98,7 @@ struct Attitude {
 }
 
 #[derive(Copy, Clone)]
-#[repr(C, packed)]
+#[repr(C)]
 pub struct SolutionState {
     pub state_pos: i16,
     pub satellites: i16,
