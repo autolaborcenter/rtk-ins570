@@ -242,10 +242,11 @@ impl Ins570 {
                 // 未初始化
                 Some(Solution::Uninitialized(self.state))
             } else {
+                let wgs84 = frame.wgs84;
                 // 已初始化
                 Some(Solution::Data {
                     state: self.state,
-                    enu: frame.wgs84.transform(self.offset),
+                    enu: wgs84.transform(self.offset),
                     dir: -FRAC_PI_2 - frame.attitude.yaw as f64 * PI / 16384.0,
                 })
             }
