@@ -258,6 +258,11 @@ impl Ins570 {
 }
 
 impl WGS84 {
+    pub const ZERO: Self = Self {
+        latitude: 0,
+        longitude: 0,
+        altitude: 0,
+    };
     const K: f64 = PI * 1e-7 / 180.0;
     const A: f64 = 6378137.0;
     const B: f64 = Self::A * (1.0 - 1.0 / 298.257223563);
