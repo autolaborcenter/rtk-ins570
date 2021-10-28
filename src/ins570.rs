@@ -1,5 +1,6 @@
 ﻿use num_traits::Num;
 use std::f64::consts::{FRAC_PI_2, PI};
+use std::fmt::Display;
 use std::time::{Duration, Instant};
 
 pub struct Ins570 {
@@ -97,7 +98,7 @@ struct Attitude {
     yaw: i16,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 #[repr(C)]
 pub struct SolutionState {
     pub state_pos: i16,
@@ -306,6 +307,31 @@ impl WGS84 {
             n: r * d_latitude.tan(),
             u: d_altitude,
         }
+    }
+}
+
+impl Default for SolutionState {
+    fn default() -> Self {
+        Self {
+            state_pos: 0,
+            state_dir: 0,
+            satellites: 0,
+        }
+    }
+}
+
+impl Display for SolutionState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let Self {
+            state_pos,
+            state_dir,
+            satellites,
+        } = self;
+        write!(
+            f,
+            "{:#02} | {:#02} | {:#02}",
+            state_pos, state_dir, satellites
+        )
     }
 }
 
