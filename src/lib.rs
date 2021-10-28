@@ -60,14 +60,16 @@ impl Driver for RTK {
     where
         F: FnMut(&mut Self, Option<(Instant, Self::Event)>) -> bool,
     {
-        let begin = Instant::now();
+        let mut begin = Instant::now();
         loop {
             let mut buffer = self.ins570.get_buf();
             match self.port.read(&mut buffer) {
                 Some(n) => match self.ins570.notify_received(n) {
                     Some(solution) => {
-                        f(self, Some((Instant::now(), solution)));
-                        return true;
+                        if !f(self, Some((Instant::now(), solution))) {
+                            return true;
+                        }
+                        begin = Instant::now();
                     }
                     None => {
                         if Instant::now() > begin + Duration::from_millis(500) {
