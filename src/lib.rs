@@ -17,7 +17,6 @@ impl Driver for RTK {
     type Key = PortKey;
     type Pacemaker = ();
     type Event = Solution;
-    type Command = ();
 
     fn keys() -> Vec<Self::Key> {
         Port::list()
@@ -53,8 +52,6 @@ impl Driver for RTK {
             Err(_) => None,
         }
     }
-
-    fn send(&mut self, _: Self::Command) {}
 
     fn join<F>(&mut self, mut f: F) -> bool
     where
