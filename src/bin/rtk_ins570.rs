@@ -1,5 +1,5 @@
 ﻿use chrono::{DateTime, Local};
-use driver::{SupersivorEventForSingle::*, SupervisorForSingle};
+use driver::{SupervisorEventForSingle::*, SupervisorForSingle};
 use rtk_ins570::{Solution, SolutionState, RTK};
 use std::{f64::consts::PI, io::Write, path::PathBuf, thread, time::Duration};
 
@@ -7,7 +7,7 @@ fn main() {
     let time = std::time::SystemTime::now();
     let mut file = LazyFile::new(time, "rtk".into());
 
-    SupervisorForSingle::<RTK>::new().join(|e| {
+    SupervisorForSingle::<RTK>::default().join(|e| {
         match e {
             Connected(_, _) => println!("Connected."),
             ConnectFailed => {
